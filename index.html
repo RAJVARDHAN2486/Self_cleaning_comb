@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SC-200 V4.2: Spring-Loaded Release</title>
+    <title>SC-200 V4.2: Snap-Fit Lock Update</title>
     <style>
         body {
             background-color: #0b0d14;
@@ -90,7 +90,7 @@
     <div class="header-text">
         <div>
             <p class="title">SC-200 // SPRING-LOADED MECHANISM (V4.2)</p>
-            <p class="subtitle">PUSH-TO-RELEASE LATCH WITH MANUAL RESET</p>
+            <p class="subtitle">SNAP-FIT FLEXIBLE TAB WITH MANUAL RESET</p>
         </div>
         <div class="tech-spec">
             <p style="margin: 0; color: #00e5ff;">ASYMMETRIC FLUSH SCRAPERS</p>
@@ -117,7 +117,7 @@
         <rect x="140" y="150" width="12" height="90" rx="4" fill="#0b0d14" stroke="#383e59" stroke-width="1"/>
         <rect x="170" y="150" width="12" height="90" rx="4" fill="#0b0d14" stroke="#383e59" stroke-width="1"/>
 
-        <rect x="260" y="100" width="500" height="120" fill="#0b0d14" stroke="#13151f" stroke-width="2"/>
+        <rect x="240" y="100" width="520" height="120" fill="#0b0d14" stroke="#13151f" stroke-width="2"/>
         
         <rect x="340" y="100" width="40" height="10" fill="#383e59"/>
         <rect x="500" y="100" width="40" height="10" fill="#383e59"/>
@@ -127,15 +127,20 @@
         <path id="spring2" fill="none" stroke="#8a93a6" stroke-width="4" stroke-linejoin="round"/>
         <path id="spring3" fill="none" stroke="#8a93a6" stroke-width="4" stroke-linejoin="round"/>
 
-        <g id="latch-assembly">
-            <rect x="235" y="115" width="40" height="15" fill="#ff3333" stroke="#aa0000" stroke-width="2"/>
-            <polygon points="275,115 285,115 285,130 265,130" fill="#ff3333" stroke="#aa0000" stroke-width="2"/>
-            <text x="210" y="110" fill="#ff3333" font-size="10" font-family="monospace">LOCK LATCH</text>
+        <g id="rigid-step">
+            <path d="M 240 140 L 255 140 L 255 150 L 240 150 Z" fill="#383e59" stroke="#5a638b" stroke-width="1"/>
+            <text x="180" y="160" fill="#8a93a6" font-size="10" font-family="monospace">RIGID STEP</text>
+        </g>
+
+        <g id="actuator-btn">
+            <rect x="200" y="125" width="40" height="15" fill="#ff3333" stroke="#aa0000" stroke-width="2" rx="2"/>
+            <text x="160" y="137" fill="#ff3333" font-size="10" font-family="monospace">BUTTON</text>
         </g>
 
         <g id="driven-plate" transform="translate(0, 0)">
             <rect x="260" y="125" width="490" height="15" rx="2" fill="#00e5ff" filter="url(#glow-cyan)"/>
-            <rect x="260" y="120" width="10" height="5" fill="#ffffff"/>
+            
+            <path id="flex-tab" d="M 260 125 L 250 140 L 255 140 L 260 130 Z" fill="#00e5ff" filter="url(#glow-cyan)"/>
 
             <g fill="#00e5ff">
                 <rect x="264" y="140" width="4" height="90" rx="1" />
@@ -182,7 +187,8 @@
     const fireBtn = document.getElementById('fireBtn');
     const resetSlider = document.getElementById('resetSlider');
     const drivenPlate = document.getElementById('driven-plate');
-    const latchAssembly = document.getElementById('latch-assembly');
+    const flexTab = document.getElementById('flex-tab');
+    const actuatorBtn = document.getElementById('actuator-btn');
     const statusText = document.getElementById('statusText');
     const lockStatus = document.getElementById('lockStatus');
     
@@ -192,6 +198,10 @@
 
     let isLocked = true;
     let currentY = 0;
+
+    // Paths for the flexible tab animation
+    const tabLockedPath = "M 260 125 L 250 140 L 255 140 L 260 130 Z";
+    const tabBentPath = "M 260 125 L 256 140 L 261 140 L 260 130 Z";
 
     function drawSprings(yTravel) {
         const topY = 110;
@@ -219,35 +229,47 @@
     fireBtn.addEventListener('click', () => {
         if (!isLocked) return;
         
-        latchAssembly.setAttribute('transform', 'translate(-15, 0)');
+        // 1. Button translates right, pushing and bending the tab inward
+        actuatorBtn.setAttribute('transform', 'translate(10, 0)');
+        flexTab.setAttribute('d', tabBentPath);
         
-        let startTime = null;
-        const duration = 100;
-        
-        function snapAnimation(timestamp) {
-            if (!startTime) startTime = timestamp;
-            const progress = (timestamp - startTime) / duration;
+        setTimeout(() => {
+            // 2. Tab clears the notch, springs fire down
+            let startTime = null;
+            const duration = 120;
             
-            if (progress < 1) {
-                currentY = 80 * Math.min(progress, 1); 
-                updateSystemVisuals(currentY);
-                requestAnimationFrame(snapAnimation);
-            } else {
-                currentY = 80;
-                updateSystemVisuals(currentY);
+            function snapAnimation(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = (timestamp - startTime) / duration;
                 
-                isLocked = false;
-                fireBtn.disabled = true;
-                resetSlider.disabled = false;
-                resetSlider.value = 0;
-                
-                statusText.textContent = "SYSTEM DEPLOYED - NEEDS MANUAL RESET";
-                statusText.setAttribute('fill', '#8a93a6');
-                lockStatus.textContent = "UNLOCKED";
-                lockStatus.style.color = "#ff3333";
+                if (progress < 1) {
+                    currentY = 80 * Math.min(progress, 1); 
+                    updateSystemVisuals(currentY);
+                    
+                    // Once safely past the rigid step, return button & relax tab
+                    if (currentY > 15) {
+                        actuatorBtn.setAttribute('transform', 'translate(0, 0)');
+                        flexTab.setAttribute('d', tabLockedPath);
+                    }
+                    
+                    requestAnimationFrame(snapAnimation);
+                } else {
+                    currentY = 80;
+                    updateSystemVisuals(currentY);
+                    
+                    isLocked = false;
+                    fireBtn.disabled = true;
+                    resetSlider.disabled = false;
+                    resetSlider.value = 0;
+                    
+                    statusText.textContent = "SYSTEM DEPLOYED - NEEDS MANUAL RESET";
+                    statusText.setAttribute('fill', '#8a93a6');
+                    lockStatus.textContent = "UNLOCKED";
+                    lockStatus.style.color = "#ff3333";
+                }
             }
-        }
-        requestAnimationFrame(snapAnimation);
+            requestAnimationFrame(snapAnimation);
+        }, 150); // Pause briefly to show the button press
     });
 
     resetSlider.addEventListener('input', function() {
@@ -256,9 +278,17 @@
         currentY = 80 - parseInt(this.value);
         updateSystemVisuals(currentY);
         
+        // Dynamic flex: as plate travels up, tab bends inward to pass the rigid step
+        if (currentY > 0 && currentY < 25) {
+            flexTab.setAttribute('d', tabBentPath);
+        } else {
+            flexTab.setAttribute('d', tabLockedPath);
+        }
+        
+        // Lock engaged
         if (currentY === 0) {
             isLocked = true;
-            latchAssembly.setAttribute('transform', 'translate(0, 0)');
+            flexTab.setAttribute('d', tabLockedPath); // Snap securely back onto the step
             
             fireBtn.disabled = false;
             resetSlider.disabled = true;
